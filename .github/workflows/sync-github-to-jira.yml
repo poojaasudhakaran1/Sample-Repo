@@ -1,7 +1,7 @@
 name: Create Jira Epic from GitHub Project Item
 
 on:
-  project_v2_item:
+  project_card:
     types: [created]
 
 jobs:
