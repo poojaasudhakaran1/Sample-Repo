@@ -1,7 +1,7 @@
 name: Create Jira Epic from GitHub Project Item
 
 on:
-  project_v2_item:
+  project_card:
     types: [created]
 
 jobs:
@@ -57,7 +57,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "fields": {
-                "project": { "key": "YOUR_PROJECT_KEY" },
+                "project": { "key": "TEST" },
                 "summary": "'"${{ steps.get-item.outputs.title }}"'",
                 "description": "'"${{ steps.get-item.outputs.body }}"'",
                 "issuetype": { "name": "Epic" }
@@ -75,7 +75,7 @@ jobs:
           script: |
             const itemId = '${{ steps.get-item.outputs.itemId }}';
             const jiraKey = '${{ steps.create-jira.outputs.jiraKey }}';
-            const projectNumber = YOUR_PROJECT_NUMBER; // e.g., 1
+            const projectNumber = 1; // e.g., 1
             const fieldName = "Jira Key";
 
             // Get project ID
