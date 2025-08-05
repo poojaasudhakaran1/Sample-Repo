@@ -124,12 +124,15 @@ jobs:
 
           PROJECT_ID="${{ steps.find_items.outputs.projectId }}"
           JIRA_FIELD_ID="${{ steps.find_items.outputs.jiraFieldId }}"
-          UNSYNCED_JSON=$(jq -c '.[]' <<< '${{ steps.find_items.outputs.unsyncedItems }}')
+          UNSYNCED_RAW='${{ steps.find_items.outputs.unsyncedItems }}'
 
           echo "Project ID: $PROJECT_ID"
           echo "Jira field ID for writing key: $JIRA_FIELD_ID"
+          echo "Raw unsynced items: $UNSYNCED_RAW"
+          
+          mapfile -t UNSYNCED_JSON < <(echo "$UNSYNCED_RAW" | jq -c '.[]?')
 
-          if [ -z "$UNSYNCED_JSON" ]; then
+          if [ "${#UNSYNCED_JSON[@]}" -eq 0 ]; then
             echo "No unsynced items found."
             exit 0
           fi
