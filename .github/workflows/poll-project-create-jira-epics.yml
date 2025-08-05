@@ -46,8 +46,10 @@ jobs:
                       title
                       fields(first: 50) {
                         nodes {
-                          id
-                          name
+                            ... on ProjectV2FieldCommon {
+                                id
+                                name
+                            }
                         }
                       }
                       items(first: 100) {
@@ -60,7 +62,12 @@ jobs:
                           fieldValues(first: 50) {
                             nodes {
                               ... on ProjectV2ItemFieldTextValue {
-                                field { id name }
+                                field { 
+                                    ... on ProjectV2FieldCommon {
+                                        id
+                                        name
+                                    }
+                                }
                                 text
                               }
                             }
