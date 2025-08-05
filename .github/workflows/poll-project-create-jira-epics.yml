@@ -93,7 +93,7 @@ jobs:
             // collect unsynced items
             const unsynced = [];
             for (const item of project.items.nodes) {
-              const already = item.fieldValues.nodes.some(f => f.field.name === jiraKeyFieldName && f.text && f.text.trim().length > 0);
+              const already = item.fieldValues.nodes.some(f => f?.field?.name === jiraKeyFieldName && typeof f.text === 'string' && f.text.trim().length > 0);
               const title = item.content?.title || null;
               if (!already && title) {
                 unsynced.push({
