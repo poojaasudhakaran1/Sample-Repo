@@ -25,7 +25,7 @@ jobs:
       - name: Checkout (no code used, but good for logs)
         uses: actions/checkout@v4
 
-      - name: Query GitHub Project: find projectId, fieldId, and unsynced items
+      - name: "Query GitHub Project: find projectId, fieldId, and unsynced items"
         id: find_items
         uses: actions/github-script@v7
         with:
