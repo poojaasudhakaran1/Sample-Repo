@@ -105,6 +105,11 @@ jobs:
             }
 
             console.log(`Project id: ${project.id}, Jira key field id: ${jiraFieldId}, unsynced items: ${unsynced.length}`);
+            
+            core.setOutput("projectId",project.id);
+            core.setOutput("jiraFieldId",jiraFieldId);
+            core.setOutput("unsyncedItems",JSON.stringify(unsynced));
+            
             return {
               projectId: project.id,
               jiraFieldId,
@@ -117,9 +122,9 @@ jobs:
           set -euo pipefail
           echo "Start creating Jira epics for unsynced items..."
 
-          PROJECT_ID="$(jq -r '.projectId' <<< '${{ toJson(steps.find_items.outputs) }}')"
-          JIRA_FIELD_ID="$(jq -r '.jiraFieldId' <<< '${{ toJson(steps.find_items.outputs) }}')"
-          UNSYNCED_JSON="$(jq -c '.unsyncedItems[]' <<< '${{ toJson(steps.find_items.outputs) }}' || true)"
+          PROJECT_ID="${{ steps.find_items.outputs.projectId }}"
+          JIRA_FIELD_ID="${{ steps.find_items.outputs.jiraFieldId }}"
+          UNSYNCED_JSON=$(jq -c '.[]' <<< '${{ steps.find_items.outputs.unsyncedItems }}')
 
           echo "Project ID: $PROJECT_ID"
           echo "Jira field ID for writing key: $JIRA_FIELD_ID"
