@@ -2,7 +2,7 @@ name: Poll GitHub Project (v2) and Create Jira Epics
 
 on:
   schedule:
-    - cron: "*/2 * * * *" # every 5 minutes
+    - cron: "*/10 * * * *" # every 5 minutes
   workflow_dispatch: # allow manual runs for testing
 
 jobs:
