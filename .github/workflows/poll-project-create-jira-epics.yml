@@ -157,11 +157,10 @@ jobs:
             exit 0
           fi
           
-          for ITEM_JSON in $ITEMS; do
-            echo "I am HERE!!!!!: $ITEM_JSON"
-            echo "$ITEM_JSON" | jq - r '.title'
-            ITEM_ID=$(jq -r '.itemId' <<< "$ITEM_JSON")
-            BODY=$(jq -r '.body' <<< "$ITEM_JSON")
+          while read -r ITEM_JSON; do
+            TITLE = $(echo "$ITEM_JSON" | jq - r '.title')
+            BODY = $(echo "$ITEM_JSON" | jq - r '.body')
+            ITEM_ID(echo "$ITEM_JSON" | jq - r '.itemId')
             
             echo "Processing item $ITEM_ID : $TITLE"
             
