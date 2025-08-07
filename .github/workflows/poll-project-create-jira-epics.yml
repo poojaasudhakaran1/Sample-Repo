@@ -160,7 +160,7 @@ jobs:
           while read -r ITEM_JSON; do
             TITLE = $(echo "$ITEM_JSON" | jq - r '.title')
             BODY = $(echo "$ITEM_JSON" | jq - r '.body')
-            ITEM_ID(echo "$ITEM_JSON" | jq - r '.itemId')
+            ITEM_ID=$(echo "$ITEM_JSON" | jq - r '.itemId')
             
             echo "Processing item $ITEM_ID : $TITLE"
             
