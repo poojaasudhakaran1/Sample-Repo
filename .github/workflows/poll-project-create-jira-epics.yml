@@ -149,12 +149,12 @@ jobs:
             
             echo "Number of Items: $(echo "$UNSYNCED_RAW" | jq 'length')"
             
+            # Safely read each item as compact JSON line (for long arrays)
+            readarray -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]')
+            
             # Print a compact preview of the first item
             echo "First unsynced item preview:"
             echo "$UNSYNCED_RAW" | jq '.[0]'
-            
-            # Safely read each item as compact JSON line (for long arrays)
-            readarray -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]')
                     
           if [ "${#ITEMS[@]}" -eq 0 ]; then
             echo "No unsynced items found."
