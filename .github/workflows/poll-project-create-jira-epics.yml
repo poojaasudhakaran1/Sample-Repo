@@ -155,13 +155,7 @@ jobs:
             
             # Safely read each item as compact JSON line (for long arrays)
             readarray -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]')
-            
-            # quick preview (limit output)
-            echo "Preview of decoded JSON (first 400 chars):"
-            printf '%s\n' "$UNSYNCED_RAW" | head -c 400; echo
-          
-          mapfile -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]?')
-          
+                    
           if [ "${#ITEMS[@]}" -eq 0 ]; then
             echo "No unsynced items found."
             exit 0
