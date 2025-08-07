@@ -130,6 +130,7 @@ jobs:
           echo "Project ID: $PROJECT_ID"
           echo "Jira field ID for writing key: $JIRA_FIELD_ID"
           echo "Base64 length: ${#UNSYNCED_B64}"
+          
            # Try to decode with base64 --decode (GNU), fallback to -D (BSD/mac) or python
             if decoded=$(printf '%s' "$UNSYNCED_B64" | base64 --decode 2>/dev/null); then
                 UNSYNCED_RAW="$decoded"
@@ -137,11 +138,11 @@ jobs:
                 UNSYNCED_RAW="$decoded"
             else
             UNSYNCED_RAW=$(python3 - <<PY
-import sys,base64
-b = base64.b64decode(sys.stdin.read().strip())
-sys.stdout.write(b.decode('utf8'))
-PY
-                )
+            import sys,base64
+            b = base64.b64decode(sys.stdin.read().strip())
+            sys.stdout.write(b.decode('utf8'))
+            PY
+            )
             fi
             
             # quick preview (limit output)
@@ -156,19 +157,19 @@ PY
             }
           
           mapfile -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]?')
-
+          
           if [ "${#ITEMS[@]}" -eq 0 ]; then
             echo "No unsynced items found."
             exit 0
           fi
-
+          
           for ITEM_JSON in $ITEMS; do
             ITEM_ID=$(jq -r '.itemId' <<< "$ITEM_JSON")
             TITLE=$(jq -r '.title' <<< "$ITEM_JSON")
             BODY=$(jq -r '.body' <<< "$ITEM_JSON")
-
+            
             echo "Processing item $ITEM_ID : $TITLE"
-
+            
             # Build Jira payload. If JIRA_EPIC_NAME_FIELD is set, include it.
             if [ -n "${{ env.JIRA_EPIC_NAME_FIELD }}" ] && [ "${{ env.JIRA_EPIC_NAME_FIELD }}" != " " ]; then
               JIRA_PAYLOAD=$(jq -n \
@@ -200,14 +201,14 @@ PY
                   }
                 }')
             fi
-
+            
             echo "Creating Jira Epic..."
             RESPONSE=$(curl -s -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
               -X POST \
               -H "Content-Type: application/json" \
               --data "$JIRA_PAYLOAD" \
               "${JIRA_BASE_URL}/rest/api/3/issue")
-
+              
             JIRA_KEY=$(echo "$RESPONSE" | jq -r .key)
             if [ "$JIRA_KEY" = "null" ] || [ -z "$JIRA_KEY" ]; then
               echo "Failed to create Jira issue. Response:"
@@ -215,10 +216,10 @@ PY
               continue
             fi
             echo "Created Jira epic: $JIRA_KEY"
-
+            
             # Now update the GitHub Project item field via GraphQL
             echo "Updating GitHub Project item $ITEM_ID field $JIRA_FIELD_ID with $JIRA_KEY"
-
+            
             MUTATION='mutation UpdateField($input: UpdateProjectV2ItemFieldValueInput!) { updateProjectV2ItemFieldValue(input: $input) { projectV2Item { id } } }'
             VARIABLES=$(jq -n \
               --arg projectId "$PROJECT_ID" \
@@ -226,19 +227,19 @@ PY
               --arg fieldId "$JIRA_FIELD_ID" \
               --arg jiraKey "$JIRA_KEY" \
               '{ input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: { text: $jiraKey } } }')
-
+              
             GITHUB_RESPONSE=$(curl -s -X POST https://api.github.com/graphql \
               -H "Authorization: Bearer ${GH_TOKEN}" \
               -H "Content-Type: application/json" \
               -d "$(jq -n --arg q "$MUTATION" --argjson v "$VARIABLES" '{query: $q, variables: $v}')" )
-
+              
             echo "GitHub response: $GITHUB_RESPONSE"
             echo "Done for item $ITEM_ID"
-
+            
             # small delay to be polite to APIs
             sleep 1
           done
-
+          
           echo "All done."
         env:
           JIRA_BASE_URL: ${{ env.JIRA_BASE_URL }}
