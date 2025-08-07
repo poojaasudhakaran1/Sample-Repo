@@ -185,7 +185,7 @@ jobs:
                       {
                       type: "paragraph",
                       content: [
-                      { type: "text", text: $BODY }
+                      { type: "text", text: $description }
                       ]
                       }
                       ]
@@ -210,7 +210,7 @@ jobs:
                       {
                       type: "paragraph",
                       content: [
-                      { type: "text", text: $BODY }
+                      { type: "text", text: $description }
                       ]
                       }
                       ]
