@@ -1,3 +1,4 @@
+
 name: Poll GitHub Project (v2) and Create Jira Epics
 
 on:
@@ -63,7 +64,7 @@ jobs:
                           fieldValues(first: 50) {
                             nodes {
                               ... on ProjectV2ItemFieldTextValue {
-                                field { 
+                                field {
                                     ... on ProjectV2FieldCommon {
                                         id
                                         name
@@ -86,12 +87,10 @@ jobs:
             const project = projects.find(p => p.number === projectNumber);
             if (!project) throw new Error(`Project number ${projectNumber} not found in ${owner}/${repo}`);
 
-            // find Jira Key field id
             const fieldNode = project.fields.nodes.find(f => f.name === jiraKeyFieldName);
             if (!fieldNode) throw new Error(`Project field "${jiraKeyFieldName}" not found on project ${projectNumber}`);
             const jiraFieldId = fieldNode.id;
 
-            // collect unsynced items
             const unsynced = [];
             for (const item of project.items.nodes) {
               const already = item.fieldValues.nodes.some(f => f?.field?.name === jiraKeyFieldName && typeof f.text === 'string' && f.text.trim().length > 0);
@@ -108,11 +107,11 @@ jobs:
             console.log(`Project id: ${project.id}, Jira key field id: ${jiraFieldId}, unsynced items: ${unsynced.length}`);
             const unsyncedJson = JSON.stringify(unsynced);
             const unsyncedB64 = Buffer.from(unsyncedJson,'utf8').toString('base64');
-            
+
             core.setOutput("projectId",project.id);
             core.setOutput("jiraFieldId",jiraFieldId);
             core.setOutput("unsyncedItemsBase64",unsyncedB64);
-            
+
             return {
               projectId: project.id,
               jiraFieldId,
@@ -126,58 +125,50 @@ jobs:
           echo "Start creating Jira epics for unsynced items..."
           PROJECT_ID="${{ steps.find_items.outputs.projectId }}"
           JIRA_FIELD_ID="${{ steps.find_items.outputs.jiraFieldId }}"
-          UNSYNCED_B64="${{ steps.find_items.outputs.unsyncedItemsBase64 }}"
+          UNSYNCED_B64='${{ steps.find_items.outputs.unsyncedItemsBase64 }}'
           echo "Project ID: $PROJECT_ID"
           echo "Jira field ID for writing key: $JIRA_FIELD_ID"
           echo "Base64 length: ${#UNSYNCED_B64}"
-          
-           # Try to decode with base64 --decode (GNU), fallback to -D (BSD/mac) or python
-            if decoded=$(printf '%s' "$UNSYNCED_B64" | base64 --decode 2>/dev/null); then
-                UNSYNCED_RAW="$decoded"
-            elif decoded=$(printf '%s' "$UNSYNCED_B64" | base64 -D 2>/dev/null); then
-                UNSYNCED_RAW="$decoded"
-            else
+
+          if decoded=$(printf '%s' "$UNSYNCED_B64" | base64 --decode 2>/dev/null); then
+              UNSYNCED_RAW="$decoded"
+          elif decoded=$(printf '%s' "$UNSYNCED_B64" | base64 -D 2>/dev/null); then
+              UNSYNCED_RAW="$decoded"
+          else
             UNSYNCED_RAW=$(python3 - <<PY
-         import sys,base64
-         b = base64.b64decode(sys.stdin.read().strip())
-         sys.stdout.write(b.decode('utf8'))
-         PY
-         )
-            fi
-            
-            # quick preview (limit output)
-            echo "Preview of decoded JSON (first 400 chars):"
-            printf '%s\n' "$UNSYNCED_RAW" | head -c 400; echo
-            
-                # Validate JSON before iterating
-            echo "$UNSYNCED_RAW" | jq . >/dev/null 2>&1 || {
-                echo "ERROR: Decoded JSON is invalid. Dumping full content for debug:"
-                echo "$UNSYNCED_RAW"
-                exit 1
-            }
-          
+import sys,base64
+b = base64.b64decode(sys.stdin.read().strip())
+sys.stdout.write(b.decode('utf8'))
+PY
+)
+          fi
+
+          echo "Preview of decoded JSON (first 400 chars):"
+          printf '%s
+' "$UNSYNCED_RAW" | head -c 400; echo
+
+          echo "$UNSYNCED_RAW" | jq . >/dev/null 2>&1 || {
+              echo "ERROR: Decoded JSON is invalid. Dumping full content for debug:"
+              echo "$UNSYNCED_RAW"
+              exit 1
+          }
+
           mapfile -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]?')
-          
+
           if [ "${#ITEMS[@]}" -eq 0 ]; then
             echo "No unsynced items found."
             exit 0
           fi
-          
-          for ITEM_JSON in $ITEMS; do
+
+          for ITEM_JSON in "${ITEMS[@]}"; do
             ITEM_ID=$(jq -r '.itemId' <<< "$ITEM_JSON")
             TITLE=$(jq -r '.title' <<< "$ITEM_JSON")
             BODY=$(jq -r '.body' <<< "$ITEM_JSON")
-            
+
             echo "Processing item $ITEM_ID : $TITLE"
-            
-            # Build Jira payload. If JIRA_EPIC_NAME_FIELD is set, include it.
+
             if [ -n "${{ env.JIRA_EPIC_NAME_FIELD }}" ] && [ "${{ env.JIRA_EPIC_NAME_FIELD }}" != " " ]; then
-              JIRA_PAYLOAD=$(jq -n \
-                --arg proj "$JIRA_PROJECT_KEY" \
-                --arg summary "$TITLE" \
-                --arg description "$BODY" \
-                --arg epiField "${{ env.JIRA_EPIC_NAME_FIELD }}" \
-                '{
+              JIRA_PAYLOAD=$(jq -n                 --arg proj "$JIRA_PROJECT_KEY"                 --arg summary "$TITLE"                 --arg description "$BODY"                 --arg epiField "${{ env.JIRA_EPIC_NAME_FIELD }}"                 '{
                   fields: (
                     {
                       project: { key: $proj },
@@ -188,11 +179,7 @@ jobs:
                   )
                 }')
             else
-              JIRA_PAYLOAD=$(jq -n \
-                --arg proj "$JIRA_PROJECT_KEY" \
-                --arg summary "$TITLE" \
-                --arg description "$BODY" \
-                '{
+              JIRA_PAYLOAD=$(jq -n                 --arg proj "$JIRA_PROJECT_KEY"                 --arg summary "$TITLE"                 --arg description "$BODY"                 '{
                   fields: {
                     project: { key: $proj },
                     summary: $summary,
@@ -201,14 +188,10 @@ jobs:
                   }
                 }')
             fi
-            
+
             echo "Creating Jira Epic..."
-            RESPONSE=$(curl -s -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-              -X POST \
-              -H "Content-Type: application/json" \
-              --data "$JIRA_PAYLOAD" \
-              "${JIRA_BASE_URL}/rest/api/3/issue")
-              
+            RESPONSE=$(curl -s -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}"               -X POST               -H "Content-Type: application/json"               --data "$JIRA_PAYLOAD"               "${JIRA_BASE_URL}/rest/api/3/issue")
+
             JIRA_KEY=$(echo "$RESPONSE" | jq -r .key)
             if [ "$JIRA_KEY" = "null" ] || [ -z "$JIRA_KEY" ]; then
               echo "Failed to create Jira issue. Response:"
@@ -216,30 +199,19 @@ jobs:
               continue
             fi
             echo "Created Jira epic: $JIRA_KEY"
-            
-            # Now update the GitHub Project item field via GraphQL
+
             echo "Updating GitHub Project item $ITEM_ID field $JIRA_FIELD_ID with $JIRA_KEY"
-            
-            MUTATION='mutation UpdateField($input: UpdateProjectV2ItemFieldValueInput!) { updateProjectV2ItemFieldValue(input: $input) { projectV2Item { id } } }'
-            VARIABLES=$(jq -n \
-              --arg projectId "$PROJECT_ID" \
-              --arg itemId "$ITEM_ID" \
-              --arg fieldId "$JIRA_FIELD_ID" \
-              --arg jiraKey "$JIRA_KEY" \
-              '{ input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: { text: $jiraKey } } }')
-              
-            GITHUB_RESPONSE=$(curl -s -X POST https://api.github.com/graphql \
-              -H "Authorization: Bearer ${GH_TOKEN}" \
-              -H "Content-Type: application/json" \
-              -d "$(jq -n --arg q "$MUTATION" --argjson v "$VARIABLES" '{query: $q, variables: $v}')" )
-              
+
+            MUTATION='mutation UpdateProjectV2ItemFieldValue($input: UpdateProjectV2ItemFieldValueInput!) { updateProjectV2ItemFieldValue(input: $input) { projectV2Item { id } } }'
+            VARIABLES=$(jq -n               --arg projectId "$PROJECT_ID"               --arg itemId "$ITEM_ID"               --arg fieldId "$JIRA_FIELD_ID"               --arg jiraKey "$JIRA_KEY"               '{ input: { projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: { text: $jiraKey } } }')
+
+            GITHUB_RESPONSE=$(curl -s -X POST https://api.github.com/graphql               -H "Authorization: Bearer ${GH_TOKEN}"               -H "Content-Type: application/json"               -d "$(jq -n --arg q "$MUTATION" --argjson v "$VARIABLES" '{query: $q, variables: $v}')" )
+
             echo "GitHub response: $GITHUB_RESPONSE"
             echo "Done for item $ITEM_ID"
-            
-            # small delay to be polite to APIs
             sleep 1
           done
-          
+
           echo "All done."
         env:
           JIRA_BASE_URL: ${{ env.JIRA_BASE_URL }}
