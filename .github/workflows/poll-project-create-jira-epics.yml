@@ -154,7 +154,7 @@ jobs:
             
             # Print a compact preview of the first item
             echo "I am HERE!!!!! First unsynced item preview:"
-            echo "$ITEMS" | jq '.[0]'
+            echo "$ITEMS[0]"
                     
           if [ "${#ITEMS[@]}" -eq 0 ]; then
             echo "No unsynced items found."
