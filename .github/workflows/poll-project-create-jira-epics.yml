@@ -153,7 +153,7 @@ jobs:
             readarray -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]')
             
             # Print a compact preview of the first item
-            echo "I am HERE!!!!! First unsynced item preview:"
+            echo "First unsynced item preview:"
             echo "$ITEMS[0]"
                     
           if [ "${#ITEMS[@]}" -eq 0 ]; then
@@ -162,6 +162,7 @@ jobs:
           fi
           
           for ITEM_JSON in $ITEMS; do
+            echo "I am HERE!!!!! "
             ITEM_ID=$(jq -r '.itemId' <<< "$ITEM_JSON")
             TITLE=$(jq -r '.title' <<< "$ITEM_JSON")
             BODY=$(jq -r '.body' <<< "$ITEM_JSON")
