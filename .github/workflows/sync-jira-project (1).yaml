@@ -129,14 +129,14 @@ jobs:
           echo "Project ID: $PROJECT_ID"
           echo "Jira field ID for writing key: $JIRA_FIELD_ID"
           echo "Base64 length: ${#UNSYNCED_B64}"
-
+          
           if decoded=$(printf '%s' "$UNSYNCED_B64" | base64 --decode 2>/dev/null); then
               UNSYNCED_RAW="$decoded"
           elif decoded=$(printf '%s' "$UNSYNCED_B64" | base64 -D 2>/dev/null); then
               UNSYNCED_RAW="$decoded"
           else
             UNSYNCED_RAW=$(python3 - <<'PY'
-import sys,base64
+import sys,base64          
 b = base64.b64decode(sys.stdin.read().strip())
 sys.stdout.write(b.decode('utf8'))
 PY
