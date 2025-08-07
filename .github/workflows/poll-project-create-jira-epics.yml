@@ -139,17 +139,26 @@ jobs:
             else
                 UNSYNCED_RAW=$(echo "$UNSYNCED_B64" | python3 .github/scripts/decode_base64.py)
             fi
+                        
+            # Validate JSON — if this fails, we log full debug
+            if ! echo "$UNSYNCED_RAW" | jq -e . >/dev/null 2>&1; then
+                echo "ERROR: Decoded JSON is invalid. Dumping full content for debug:"
+                echo "$UNSYNCED_RAW"
+                exit 1
+            fi
+            
+            echo "Number of Items: $(echo "$UNSYNCED_RAW" | jq 'length')"
+            
+            # Print a compact preview of the first item
+            echo "First unsynced item preview:"
+            echo "$UNSYNCED_RAW" | jq '.[0]'
+            
+            # Safely read each item as compact JSON line (for long arrays)
+            readarray -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]')
             
             # quick preview (limit output)
             echo "Preview of decoded JSON (first 400 chars):"
             printf '%s\n' "$UNSYNCED_RAW" | head -c 400; echo
-            
-                # Validate JSON before iterating
-            echo "$UNSYNCED_RAW" | jq . >/dev/null 2>&1 || {
-                echo "ERROR: Decoded JSON is invalid. Dumping full content for debug:"
-                echo "$UNSYNCED_RAW"
-                exit 1
-            }
           
           mapfile -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]?')
           
