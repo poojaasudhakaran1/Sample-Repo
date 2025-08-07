@@ -32,7 +32,6 @@ jobs:
           github-token: ${{ env.GH_TOKEN }}
           script: |
             const fs = require('fs');
-            const core = require('@actions/core');
             const owner = process.env.REPO_OWNER;
             const repo = process.env.REPO_NAME;
             const projectNumber = parseInt(process.env.PROJECT_NUMBER, 10);
