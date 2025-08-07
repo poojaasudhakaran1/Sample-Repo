@@ -158,9 +158,10 @@ jobs:
           fi
           
           echo "$UNSYNCED_RAW" | jq -c '.[]' | while read -r ITEM_JSON; do
-            TITLE = $(echo "$ITEM_JSON" | jq - r '.title')
-            BODY = $(echo "$ITEM_JSON" | jq - r '.body')
-            ITEM_ID=$(echo "$ITEM_JSON" | jq - r '.itemId')
+            echo "HERE!!!: $ITEM_JSON"
+            TITLE = $(echo "$ITEM_JSON" | jq -r '.title')
+            BODY = $(echo "$ITEM_JSON" | jq -r '.body')
+            ITEM_ID=$(echo "$ITEM_JSON" | jq -r '.itemId')
             
             echo "Processing item $ITEM_ID : $TITLE"
             
