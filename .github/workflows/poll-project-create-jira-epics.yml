@@ -144,6 +144,7 @@ jobs:
             b = base64.b64decode(sys.stdin.read().strip())
             sys.stdout.write(b.decode('utf8'))
             PY
+            )
             fi
             
             # quick preview (limit output)
