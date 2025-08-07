@@ -163,8 +163,8 @@ jobs:
           
           for ITEM_JSON in $ITEMS; do
             echo "I am HERE!!!!! "
+            echo "$ITEM_JSON" | jq - r '.title'
             ITEM_ID=$(jq -r '.itemId' <<< "$ITEM_JSON")
-            TITLE=$(jq -r '.title' <<< "$ITEM_JSON")
             BODY=$(jq -r '.body' <<< "$ITEM_JSON")
             
             echo "Processing item $ITEM_ID : $TITLE"
