@@ -124,22 +124,19 @@ jobs:
         run: |
           set -euo pipefail
           echo "Start creating Jira epics for unsynced items..."
-
           PROJECT_ID="${{ steps.find_items.outputs.projectId }}"
           JIRA_FIELD_ID="${{ steps.find_items.outputs.jiraFieldId }}"
           UNSYNCED_B64='${{ steps.find_items.outputs.unsyncedItemsBase64 }}'
-
           echo "Project ID: $PROJECT_ID"
           echo "Jira field ID for writing key: $JIRA_FIELD_ID"
           echo "Base64 length: ${#UNSYNCED_B64}"
-          
            # Try to decode with base64 --decode (GNU), fallback to -D (BSD/mac) or python
             if decoded=$(printf '%s' "$UNSYNCED_B64" | base64 --decode 2>/dev/null); then
                 UNSYNCED_RAW="$decoded"
             elif decoded=$(printf '%s' "$UNSYNCED_B64" | base64 -D 2>/dev/null); then
                 UNSYNCED_RAW="$decoded"
             else
-      UNSYNCED_RAW=$(python3 - <<PY
+            UNSYNCED_RAW=$(python3 - <<PY
 import sys,base64
 b = base64.b64decode(sys.stdin.read().strip())
 sys.stdout.write(b.decode('utf8'))
