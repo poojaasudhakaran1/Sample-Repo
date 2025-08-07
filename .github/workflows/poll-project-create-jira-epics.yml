@@ -153,8 +153,8 @@ jobs:
             readarray -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]')
             
             # Print a compact preview of the first item
-            echo "First unsynced item preview:"
-            echo "$UNSYNCED_RAW" | jq '.[0]'
+            echo "I am HERE!!!!! First unsynced item preview:"
+            echo "$ITEMS" | jq '.[0]'
                     
           if [ "${#ITEMS[@]}" -eq 0 ]; then
             echo "No unsynced items found."
