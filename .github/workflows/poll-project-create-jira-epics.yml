@@ -171,14 +171,24 @@ jobs:
               JIRA_PAYLOAD=$(jq -n \
                 --arg proj "$JIRA_PROJECT_KEY" \
                 --arg summary "$TITLE" \
-                --arg description "$BODY" \
                 --arg epiField "${{ env.JIRA_EPIC_NAME_FIELD }}" \
                 '{
                   fields: (
                     {
                       project: { key: $proj },
                       summary: $summary,
-                      description: $description,
+                      description: {
+                      type: "doc",
+                      version: 1,
+                      content: [
+                      {
+                      type: "paragraph",
+                      content: [
+                      { type: "text", text: $BODY }
+                      ]
+                      }
+                      ]
+                      },
                       issuetype: { name: "Epic" }
                     } + { ($epiField): $summary }
                   )
@@ -187,12 +197,22 @@ jobs:
               JIRA_PAYLOAD=$(jq -n \
                 --arg proj "$JIRA_PROJECT_KEY" \
                 --arg summary "$TITLE" \
-                --arg description "$BODY" \
                 '{
                   fields: {
                     project: { key: $proj },
                     summary: $summary,
-                    description: $description,
+                      description: {
+                      type: "doc",
+                      version: 1,
+                      content: [
+                      {
+                      type: "paragraph",
+                      content: [
+                      { type: "text", text: $BODY }
+                      ]
+                      }
+                      ]
+                      },
                     issuetype: { name: "Epic" }
                   }
                 }')
