@@ -157,7 +157,7 @@ jobs:
             exit 0
           fi
           
-          while read -r ITEM_JSON; do
+          echo "$UNSYNCED_RAW" | jq -c '.[]' | while read -r ITEM_JSON; do
             TITLE = $(echo "$ITEM_JSON" | jq - r '.title')
             BODY = $(echo "$ITEM_JSON" | jq - r '.body')
             ITEM_ID=$(echo "$ITEM_JSON" | jq - r '.itemId')
