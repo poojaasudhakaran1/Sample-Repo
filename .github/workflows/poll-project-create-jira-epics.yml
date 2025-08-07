@@ -31,6 +31,8 @@ jobs:
         with:
           github-token: ${{ env.GH_TOKEN }}
           script: |
+            const fs = require('fs');
+            const core = require('@actions/core');
             const owner = process.env.REPO_OWNER;
             const repo = process.env.REPO_NAME;
             const projectNumber = parseInt(process.env.PROJECT_NUMBER, 10);
@@ -105,39 +107,66 @@ jobs:
             }
 
             console.log(`Project id: ${project.id}, Jira key field id: ${jiraFieldId}, unsynced items: ${unsynced.length}`);
+            const unsyncedJson = JSON.stringify(unsynced);
+            const unsyncedB64 = Buffer.from(unsyncedJson,'utf8').toString('base64');
             
             core.setOutput("projectId",project.id);
             core.setOutput("jiraFieldId",jiraFieldId);
-            core.setOutput("unsyncedItems",JSON.stringify(unsynced));
+            core.setOutput("unsyncedItemsBase64",unsyncedB64);
             
             return {
               projectId: project.id,
               jiraFieldId,
-              unsyncedItems: unsynced
+              unsyncedItemsBase64: unsyncedB64
             };
 
       - name: Create Jira Epics and update GitHub Project items
-        if: steps.find_items.outputs.unsyncedItems != '[]'
+        if: steps.find_items.outputs.unsyncedItemsBase64 != '[]'
         run: |
           set -euo pipefail
           echo "Start creating Jira epics for unsynced items..."
 
           PROJECT_ID="${{ steps.find_items.outputs.projectId }}"
           JIRA_FIELD_ID="${{ steps.find_items.outputs.jiraFieldId }}"
-          UNSYNCED_RAW='${{ steps.find_items.outputs.unsyncedItems }}'
+          UNSYNCED_B64='${{ steps.find_items.outputs.unsyncedItemsBase64 }}'
 
           echo "Project ID: $PROJECT_ID"
           echo "Jira field ID for writing key: $JIRA_FIELD_ID"
-          echo "Raw unsynced items: $UNSYNCED_RAW"
+          echo "Base64 length: ${#UNSYNCED_B64}"
           
-          mapfile -t UNSYNCED_JSON < <(echo "$UNSYNCED_RAW" | jq -c '.[]?')
+           # Try to decode with base64 --decode (GNU), fallback to -D (BSD/mac) or python
+            if decoded=$(printf '%s' "$UNSYNCED_B64" | base64 --decode 2>/dev/null); then
+                UNSYNCED_RAW="$decoded"
+            elif decoded=$(printf '%s' "$UNSYNCED_B64" | base64 -D 2>/dev/null); then
+                UNSYNCED_RAW="$decoded"
+            else
+                # portable python fallback
+                UNSYNCED_RAW=$(python3 - <<PY
+            import sys,base64
+            b = base64.b64decode(sys.stdin.read().strip())
+            sys.stdout.write(b.decode('utf8'))
+            PY
+            fi
+            
+            # quick preview (limit output)
+            echo "Preview of decoded JSON (first 400 chars):"
+            printf '%s\n' "$UNSYNCED_RAW" | head -c 400; echo
+            
+                # Validate JSON before iterating
+            echo "$UNSYNCED_RAW" | jq . >/dev/null 2>&1 || {
+                echo "ERROR: Decoded JSON is invalid. Dumping full content for debug:"
+                echo "$UNSYNCED_RAW"
+                exit 1
+            }
+          
+          mapfile -t ITEMS < <(echo "$UNSYNCED_RAW" | jq -c '.[]?')
 
-          if [ "${#UNSYNCED_JSON[@]}" -eq 0 ]; then
+          if [ "${#ITEMS[@]}" -eq 0 ]; then
             echo "No unsynced items found."
             exit 0
           fi
 
-          for ITEM_JSON in $UNSYNCED_JSON; do
+          for ITEM_JSON in $ITEMS; do
             ITEM_ID=$(jq -r '.itemId' <<< "$ITEM_JSON")
             TITLE=$(jq -r '.title' <<< "$ITEM_JSON")
             BODY=$(jq -r '.body' <<< "$ITEM_JSON")
