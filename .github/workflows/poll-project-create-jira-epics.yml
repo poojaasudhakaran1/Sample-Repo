@@ -137,12 +137,7 @@ jobs:
             elif decoded=$(printf '%s' "$UNSYNCED_B64" | base64 -D 2>/dev/null); then
                 UNSYNCED_RAW="$decoded"
             else
-            UNSYNCED_RAW=$(python3 - <<PY
-         import sys,base64
-         b = base64.b64decode(sys.stdin.read().strip())
-         sys.stdout.write(b.decode('utf8'))
-         PY
-         )
+                UNSYNCED_RAW=$(echo "$UNSYNCED_B64" | python3 .github/scripts/decode_base64.py)
             fi
             
             # quick preview (limit output)
