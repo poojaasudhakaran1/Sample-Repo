@@ -140,11 +140,11 @@ jobs:
                 UNSYNCED_RAW="$decoded"
             else
                 UNSYNCED_RAW=$(python3 - <<PY
-import sys,base64
-b = base64.b64decode(sys.stdin.read().strip())
-sys.stdout.write(b.decode('utf8'))
-PY
-)
+                import sys, base64
+                b = base64.b64decode(sys.stdin.read().strip())
+                sys.stdout.write(b.decode('utf8'))
+                PY
+                )
             fi
             
             # quick preview (limit output)
